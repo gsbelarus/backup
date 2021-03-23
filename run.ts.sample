@@ -1,0 +1,47 @@
+import { backup } from "./backup.ts";
+import { IFiles, IOptions } from "./types.ts";
+
+/**
+ * Файлы архивов
+ */
+const files: IFiles = {
+  'delphi': {
+    rootDir: 'c:/',
+    subDirs: true,
+    include: ['delphi']
+  },
+  'bases': {
+    rootDir: 'c:/bases',
+    subDirs: false,
+    include: [
+      {
+        fileName: 'etalon.fdb',
+        preProcess: {
+          newExt: '.bk',
+          processor: 'fb25'
+        }
+      }
+    ]
+  }
+};
+
+const options: IOptions = {
+  resetBackupDir: true,
+  zipPath: 'C:/Program Files/7-zip',
+  fb25: {
+    binPath: 'C:/Program Files/FB25/bin',
+    host: 'localhost',
+    port: 3053,
+    user: 'SYSDBA',
+    password: 'masterkey'
+  },
+  fb3: {
+    binPath: 'C:/Program Files/FB3',
+    host: 'localhost',
+    port: 3050,
+    user: 'SYSDBA',
+    password: 'masterkey'
+  }
+};
+
+await backup('c:/backup/data', 'ASURFACE', undefined, files, options);
