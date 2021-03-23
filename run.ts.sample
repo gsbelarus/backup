@@ -38,10 +38,10 @@ const options: IOptions = {
   fb3: {
     binPath: 'C:/Program Files/FB3',
     host: 'localhost',
-    port: 3050,
+    port: 3054,
     user: 'SYSDBA',
     password: 'masterkey'
   }
 };
 
-await backup('c:/backup/data', 'ASURFACE', undefined, files, options);
+await backup('g:/archive', 'COMPUTER', undefined, files, options);
