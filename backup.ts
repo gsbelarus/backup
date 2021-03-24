@@ -102,7 +102,10 @@ export const backup = async (destDir: string, destPrefix: string, remoteDir: str
       const zip = Deno.run({
         cmd: [
           path.join(options.zipPath, '7z'),
-          'u', '-y', subDirs ? '-r0' : '-r-', '-ssw', '-mmt4', '-mx5', '-x@exclude.lst', fullArchiveFileName, fullFileName
+          'u', '-y', subDirs ? '-r0' : '-r-', '-ssw', '-mmt4', '-mx5', 
+          '-xr!.git', '-xr!node_modules', 
+          fullArchiveFileName, 
+          fullFileName
         ],
         cwd: rootDir,
         stdin: 'piped',
