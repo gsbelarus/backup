@@ -40,99 +40,113 @@ export const backup = async (destDir: string, destPrefix: string, remoteDir: str
 
   await ensureDir(destFullName);
 
+  const processes: Promise<void>[] = [];
+
   for (const [archiveFileName, archive] of Object.entries(files)) {
-    const { rootDir, subDirs, include } = archive;
 
-    const fullArchiveFileName = path.join(destFullName, `${archiveFileName}.${datePart}.7z`);
+    if (processes.length >= 4) {
+      await Promise.all(processes);
+      processes.length = 0;
+    }
 
-    for (const f of include) {
-      let fullFileName = path.join(rootDir, typeof f === 'string' ? f : f.fileName);
-      let tempFile = false;
+    const processFunc = async () => {
+      const { rootDir, subDirs, include } = archive;
 
-      if (typeof f !== 'string' && f.preProcess) {
-        if (f.preProcess.processor === 'fb25' || f.preProcess.processor === 'fb3') {
-          const { binPath, host, port, user, password } = f.preProcess.processor === 'fb25' ? options.fb25 : options.fb3;
-          const { dir, name } = path.parse(fullFileName);
-          const fullBKName = path.join(dir, name + '.' + f.preProcess.processor + f.preProcess.newExt);
+      const fullArchiveFileName = path.join(destFullName, `${archiveFileName}.${datePart}.7z`);
 
-          const gbak = Deno.run({
-            cmd: [
-              path.join(binPath, 'gbak'),
-              '-b',
-              fullFileName,
-              fullBKName,
-              '-user',
-              user,
-              '-password',
-              password,
-              '-g',
-              '-se',
-              `${host}/${port}:service_mgr`
-            ],
-            cwd: rootDir,
-            stdin: 'piped',
-            stdout: 'piped',
-            stderr: 'piped'
-          });
+      for (const f of include) {
+        let fullFileName = path.join(rootDir, typeof f === 'string' ? f : f.fileName);
+        let tempFile = false;
 
-          const [status, stdout, stderr] = await Promise.all([
-            gbak.status(),
-            gbak.output(),
-            gbak.stderrOutput()
-          ]);
+        if (typeof f !== 'string' && f.preProcess) {
+          if (f.preProcess.processor === 'fb25' || f.preProcess.processor === 'fb3') {
+            const { binPath, host, port, user, password } = f.preProcess.processor === 'fb25' ? options.fb25 : options.fb3;
+            const { dir, name } = path.parse(fullFileName);
+            const fullBKName = path.join(dir, name + '.' + f.preProcess.processor + f.preProcess.newExt);
 
-          log(new TextDecoder().decode(stdout));
+            const gbak = Deno.run({
+              cmd: [
+                path.join(binPath, 'gbak'),
+                '-b',
+                fullFileName,
+                fullBKName,
+                '-user',
+                user,
+                '-password',
+                password,
+                '-g',
+                '-se',
+                `${host}/${port}:service_mgr`
+              ],
+              cwd: rootDir,
+              stdin: 'piped',
+              stdout: 'piped',
+              stderr: 'piped'
+            });
 
-          gbak.close();
+            const [status, stdout, stderr] = await Promise.all([
+              gbak.status(),
+              gbak.output(),
+              gbak.stderrOutput()
+            ]);
 
-          if (status.success) {
-            log(`database backup ${fullBKName} has been created...`);
+            log(new TextDecoder().decode(stdout));
+
+            gbak.close();
+
+            if (status.success) {
+              log(`database backup ${fullBKName} has been created...`);
+            } else {
+              log(`error creating database backup...`);
+              throw new Error(new TextDecoder().decode(stderr));
+            }
+
+            fullFileName = fullBKName;
+            tempFile = true;
           } else {
-            log(`error creating database backup...`);
-            throw new Error(new TextDecoder().decode(stderr));
+            throw new Error(`Unknown processor ${f.preProcess.processor}`);
           }
+        }
 
-          fullFileName = fullBKName;
-          tempFile = true;
-        } else {
-          throw new Error(`Unknown processor ${f.preProcess.processor}`);
+        const zip = Deno.run({
+          cmd: [
+            path.join(options.zipPath, '7z'),
+            'u', '-y', subDirs ? '-r0' : '-r-', '-ssw', '-mmt4', '-mx5',
+            '-xr!.git', '-xr!node_modules',
+            fullArchiveFileName,
+            fullFileName
+          ],
+          cwd: rootDir,
+          stdin: 'piped',
+          stdout: 'piped',
+          stderr: 'piped'
+        });
+
+        const [status, stdout, stderr] = await Promise.all([
+          zip.status(),
+          zip.output(),
+          zip.stderrOutput()
+        ]);
+
+        log(new TextDecoder().decode(stdout));
+
+        zip.close();
+
+        if (!status.success) {
+          log(`error creating archive...`);
+          log(new TextDecoder().decode(stderr));
+        }
+
+        if (tempFile && existsSync(fullFileName)) {
+          await Deno.remove(fullFileName);
         }
       }
-
-      const zip = Deno.run({
-        cmd: [
-          path.join(options.zipPath, '7z'),
-          'u', '-y', subDirs ? '-r0' : '-r-', '-ssw', '-mmt4', '-mx5', 
-          '-xr!.git', '-xr!node_modules', 
-          fullArchiveFileName, 
-          fullFileName
-        ],
-        cwd: rootDir,
-        stdin: 'piped',
-        stdout: 'piped',
-        stderr: 'piped'
-      });
-
-      const [status, stdout, stderr] = await Promise.all([
-        zip.status(),
-        zip.output(),
-        zip.stderrOutput()
-      ]);
-
-      log(new TextDecoder().decode(stdout));
-
-      zip.close();
-
-      if (!status.success) {
-        log(`error creating archive...`);
-        log(new TextDecoder().decode(stderr));
-      }
-
-      if (tempFile && existsSync(fullFileName)) {
-        await Deno.remove(fullFileName);
-      }
     }
+
+    processes.push(processFunc());
   }
+
+  await Promise.all(processes);
 
   if (remoteDir) {
     await move(destFullName, remoteDir + '/' + destPrefix + '-' + datePart, { overwrite: true });
