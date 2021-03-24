@@ -11,7 +11,8 @@ const log = (s: string) => {
 export const backup = async (destDir: string, destPrefix: string, remoteDir: string | undefined, files: IFiles, options: IOptions) => {
 
   const archiveDate = new Date();
-  const { resetBackupDir, fb25, fb3, zipPath, maxProcessCount } = options;
+  const { resetBackupDir, fb25, fb3, zipPath } = options;
+  const maxProcessCount = options.maxProcessCount ?? 4;
 
   log(`${'='.repeat(80)}\narchivation started ${archiveDate.toLocaleDateString()} ${archiveDate.toLocaleTimeString()}\n`);
 
@@ -45,8 +46,10 @@ export const backup = async (destDir: string, destPrefix: string, remoteDir: str
 
   for (const [archiveFileName, archive] of Object.entries(files)) {
 
-    if (processes.length >= (maxProcessCount ?? 4)) {
+    if (processes.length >= maxProcessCount) {
+      log(`waiting for ${processes.length} processes to finish...`);
       await Promise.all(processes);
+      log(`${processes.length} processes have finished...`);
       processes.length = 0;
     }
 
