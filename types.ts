@@ -11,6 +11,7 @@ export interface IOptions {
   zipPath: string;
   fb3: IFBOptions;
   fb25: IFBOptions;
+  maxProcessCount?: number;
 };
 
 export interface IFiles {

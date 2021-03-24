@@ -11,6 +11,7 @@ const log = (s: string) => {
 export const backup = async (destDir: string, destPrefix: string, remoteDir: string | undefined, files: IFiles, options: IOptions) => {
 
   const archiveDate = new Date();
+  const { resetBackupDir, fb25, fb3, zipPath, maxProcessCount } = options;
 
   log(`${'='.repeat(80)}\narchivation started ${archiveDate.toLocaleDateString()} ${archiveDate.toLocaleTimeString()}\n`);
 
@@ -20,7 +21,7 @@ export const backup = async (destDir: string, destPrefix: string, remoteDir: str
   // при автоматическим формировании архива по расписанию целевой каталог
   // может переполниться. Предусмотрим опцию удаления последнего
   // архивного каталога. Будем смотреть только за последние 100 дней.
-  if (options.resetBackupDir) {
+  if (resetBackupDir) {
     const d = new Date();
     let i = 100;
 
@@ -44,7 +45,7 @@ export const backup = async (destDir: string, destPrefix: string, remoteDir: str
 
   for (const [archiveFileName, archive] of Object.entries(files)) {
 
-    if (processes.length >= 4) {
+    if (processes.length >= (maxProcessCount ?? 4)) {
       await Promise.all(processes);
       processes.length = 0;
     }
@@ -60,7 +61,7 @@ export const backup = async (destDir: string, destPrefix: string, remoteDir: str
 
         if (typeof f !== 'string' && f.preProcess) {
           if (f.preProcess.processor === 'fb25' || f.preProcess.processor === 'fb3') {
-            const { binPath, host, port, user, password } = f.preProcess.processor === 'fb25' ? options.fb25 : options.fb3;
+            const { binPath, host, port, user, password } = f.preProcess.processor === 'fb25' ? fb25 : fb3;
             const { dir, name } = path.parse(fullFileName);
             const fullBKName = path.join(dir, name + '.' + f.preProcess.processor + f.preProcess.newExt);
 
@@ -110,7 +111,7 @@ export const backup = async (destDir: string, destPrefix: string, remoteDir: str
 
         const zip = Deno.run({
           cmd: [
-            path.join(options.zipPath, '7z'),
+            path.join(zipPath, '7z'),
             'u', '-y', subDirs ? '-r0' : '-r-', '-ssw', '-mmt4', '-mx5',
             '-xr!.git', '-xr!node_modules',
             fullArchiveFileName,
