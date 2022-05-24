@@ -115,7 +115,7 @@ export const backup = async (destDir: string, destPrefix: string, remoteDir: str
         const zip = Deno.run({
           cmd: [
             path.join(zipPath, '7z'),
-            'u', '-y', subDirs ? '-r0' : '-r-', '-ssw', '-mmt4', '-mx5',
+            'u', '-y', subDirs ? '-r0' : '-r-', '-ssw', '-mmt2', '-mx5',
             '-xr!.git', '-xr!node_modules',
             fullArchiveFileName,
             fullFileName
@@ -157,5 +157,6 @@ export const backup = async (destDir: string, destPrefix: string, remoteDir: str
     log(`${destFullName} has been moved to ${remoteDir}...`)
   }
 
-  log(`archivation finished ${new Date().toLocaleDateString()} ${new Date().toLocaleTimeString()}`);
+  const finishDate = new Date();
+  log(`archivation finished ${finishDate.toISOString()}, in ${new Date(finishDate.getDate() - archiveDate.getDate()).toISOString().slice(11, -1)}`);
 };
