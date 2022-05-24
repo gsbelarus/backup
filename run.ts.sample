@@ -41,7 +41,8 @@ const options: IOptions = {
     port: 3054,
     user: 'SYSDBA',
     password: 'masterkey'
-  }
+  },
+  maxProcessCount: 4
 };
 
 await backup('g:/archive', 'COMPUTER', undefined, files, options);
