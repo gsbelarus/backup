@@ -116,7 +116,7 @@ export const backup = async (destDir: string, destPrefix: string, remoteDir: str
           cmd: [
             path.join(zipPath, '7z'),
             'u', '-y', subDirs ? '-r0' : '-r-', '-ssw', '-mmt2', '-mx5',
-            '-xr!.git', '-xr!node_modules',
+            '-xr!node_modules',
             fullArchiveFileName,
             fullFileName
           ],
