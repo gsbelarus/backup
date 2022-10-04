@@ -8,6 +8,14 @@ const log = (s: string) => {
   Deno.writeTextFileSync('./log.txt', s + '\n', { append: true });
 };
 
+/**
+ * 
+ * @param destDir Where directory with backup archives will be placed.
+ * @param destPrefix Prefix for the name of directory with backup archives.
+ * @param remoteDir If specified, the directory with backup archives will be moved there upon process completion.
+ * @param files List of files/dirs to backup.
+ * @param options Options of the backup.
+ */
 export const backup = async (destDir: string, destPrefix: string, remoteDir: string | undefined, files: IFiles, options: IOptions) => {
 
   const archiveDate = new Date();
