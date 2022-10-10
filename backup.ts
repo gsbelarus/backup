@@ -64,11 +64,21 @@ export const backup = async (destDir: string, destPrefix: string, remoteDir: str
     const processFunc = async () => {
       const { rootDir, subDirs, include } = archive;
 
+      if (!existsSync(rootDir)) {
+        log(`Error: ${rootDir} not found!`);
+        return;
+      }
+
       const fullArchiveFileName = path.join(destFullName, `${archiveFileName}.${datePart}.7z`);
 
       for (const f of include) {
         let fullFileName = path.join(rootDir, typeof f === 'string' ? f : f.fileName);
         let tempFile = false;
+
+        if (!existsSync(fullFileName)) {
+          log(`WARNING: file ${fullFileName} not found...`);
+          continue;
+        }
 
         if (typeof f !== 'string' && f.preProcess) {
           if (f.preProcess.processor === 'fb25' || f.preProcess.processor === 'fb3') {
