@@ -3,7 +3,7 @@ import * as path from "https://deno.land/std/path/mod.ts";
 import { dateToString } from "https://deno.land/x/date_format_deno/mod.ts"
 import { ensureDir, existsSync, move } from "https://deno.land/std/fs/mod.ts";
 
-const log = (s: string) => {
+export const log = (s: string) => {
   console.log(s);
   Deno.writeTextFileSync('./log.txt', s + '\n', { append: true });
 };

@@ -31,3 +31,10 @@ export interface IFiles {
     }[]
   }
 };
+
+export interface IFTPOptions {
+  srvname: string;
+  mode: string;
+  user: string;
+  pass: string;
+};
