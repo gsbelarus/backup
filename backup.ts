@@ -1,9 +1,10 @@
-import { IFiles, IOptions } from "./types.ts";
+import { IFiles, IFTPOptions, IOptions } from "./types.ts";
 import * as path from "https://deno.land/std/path/mod.ts";
 import { dateToString } from "https://deno.land/x/date_format_deno/mod.ts"
 import { ensureDir, existsSync, move } from "https://deno.land/std/fs/mod.ts";
+import { ftpSender } from "./ftp.ts"
 
-export const log = (s: string) => {
+const log = (s: string) => {
   console.log(s);
   Deno.writeTextFileSync('./log.txt', s + '\n', { append: true });
 };
@@ -15,12 +16,14 @@ export const log = (s: string) => {
  * @param remoteDir If specified, the directory with backup archives will be moved there upon process completion.
  * @param files List of files/dirs to backup.
  * @param options Options of the backup.
+ * @param ftpoptions ftp options
  */
-export const backup = async (destDir: string, destPrefix: string, remoteDir: string | undefined, files: IFiles, options: IOptions) => {
+export const backup = async (destDir: string, destPrefix: string, remoteDir: string | undefined, files: IFiles, options: IOptions, ftpoptions: IFTPOptions) => {
 
   const archiveDate = new Date();
   const { resetBackupDir, fb25, fb3, zipPath } = options;
   const maxProcessCount = options.maxProcessCount ?? 4;
+  const uploadFtp = ftpoptions.upload ?? true;
 
   log(`${'='.repeat(80)}\narchivation started ${archiveDate.toLocaleDateString()} ${archiveDate.toLocaleTimeString()}\n`);
 
@@ -174,6 +177,16 @@ export const backup = async (destDir: string, destPrefix: string, remoteDir: str
     await move(destFullName, remoteDir + '/' + destPrefix + '-' + datePart, { overwrite: true });
     log(`${destFullName} has been moved to ${remoteDir}...`)
   }
+
+  if ((uploadFtp) && (remoteDir)) {
+    if (!existsSync(remoteDir)) {
+        log(`file ${destFullName} wasn't file ...`)
+    } else {
+        await ftpSender(remoteDir + '/' + destPrefix + '-' + datePart, ftpoptions);
+        log(`file ${destFullName} was transfered to ${ftpoptions.srvname}...`);
+    } 
+  }
+
 
   const finishDate = new Date();
   log(`archivation finished ${finishDate.toISOString()}, in ${new Date(finishDate.getDate() - archiveDate.getDate()).toISOString().slice(11, -1)}`);

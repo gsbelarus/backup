@@ -34,6 +34,7 @@ export interface IFiles {
 
 export interface IFTPOptions {
   srvname: string;
+  upload : boolean,
   mode: string;
   user: string;
   pass: string;
