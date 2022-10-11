@@ -32,10 +32,16 @@ export interface IFiles {
   }
 };
 
+/* ftp connection*/
+export interface IFTPConnection{
+  mode: 'active' | 'passive' | undefined;
+  user: string;
+  pass: string;
+};
+
+/*ftp options*/
 export interface IFTPOptions {
   srvname: string;
   upload : boolean,
-  mode: string;
-  user: string;
-  pass: string;
+  ConnectionOptions: IFTPConnection;
 };

@@ -2,7 +2,8 @@ import { IFiles, IFTPOptions, IOptions } from "./types.ts";
 import * as path from "https://deno.land/std/path/mod.ts";
 import { dateToString } from "https://deno.land/x/date_format_deno/mod.ts"
 import { ensureDir, existsSync, move } from "https://deno.land/std/fs/mod.ts";
-import { ftpSender } from "./ftp.ts"
+import { ftpSender } from "./ftp.ts";
+//import { readdirSync } from 'node.ts';
 
 const log = (s: string) => {
   console.log(s);
@@ -178,16 +179,22 @@ export const backup = async (destDir: string, destPrefix: string, remoteDir: str
     log(`${destFullName} has been moved to ${remoteDir}...`)
   }
 
-  if ((uploadFtp) && (remoteDir)) {
-    if (!existsSync(remoteDir)) {
-        log(`file ${destFullName} wasn't file ...`)
-    } else {
-        await ftpSender(remoteDir + '/' + destPrefix + '-' + datePart, ftpoptions);
-        log(`file ${destFullName} was transfered to ${ftpoptions.srvname}...`);
-    } 
-  }
+  // тут нужен цикл по файлам архива после перемещения
+  const destFolder = destDir + destPrefix + '-' + datePart; 
+  //let fs = readdirSync(destFolder);
+   // for (const ffile in  fs){
+  //    // upload to ftp-server
+  //   if (uploadFtp) {
+  //     if (!existsSync(ffile)) {
+  //       log(`file  ${ffile} does not exists`)
+  //     } else {
+  //       await ftpSender(ffile, ftpoptions);
+  //       log(`file ${ffile} was transfered to ${ftpoptions.srvname}...`);
+  //     } 
+  //    }
 
+  //}
 
   const finishDate = new Date();
   log(`archivation finished ${finishDate.toISOString()}, in ${new Date(finishDate.getDate() - archiveDate.getDate()).toISOString().slice(11, -1)}`);
-};
+}
