@@ -1,4 +1,4 @@
-import { IFiles, IFTPOptions, IOptions } from "./types.ts";
+import { IFiles, IOptions } from "./types.ts";
 import * as path from "https://deno.land/std/path/mod.ts";
 import { dateToString } from "https://deno.land/x/date_format_deno/mod.ts"
 import { ensureDir, existsSync, move } from "https://deno.land/std/fs/mod.ts";
@@ -17,14 +17,13 @@ const log = (s: string) => {
  * @param remoteDir If specified, the directory with backup archives will be moved there upon process completion.
  * @param files List of files/dirs to backup.
  * @param options Options of the backup.
- * @param ftpoptions ftp options
  */
-export const backup = async (destDir: string, destPrefix: string, remoteDir: string | undefined, files: IFiles, options: IOptions, ftpoptions: IFTPOptions) => {
+export const backup = async (destDir: string, destPrefix: string, remoteDir: string | undefined, files: IFiles, options: IOptions) => {
 
   const archiveDate = new Date();
-  const { resetBackupDir, fb25, fb3, zipPath } = options;
+  const { resetBackupDir, fb25, fb3, zipPath, ftpoptions} = options;
   const maxProcessCount = options.maxProcessCount ?? 4;
-  const uploadFtp = ftpoptions.upload ?? true;
+  const uploadFtp = options.ftpoptions.upload ?? true;
 
   log(`${'='.repeat(80)}\narchivation started ${archiveDate.toLocaleDateString()} ${archiveDate.toLocaleTimeString()}\n`);
 
@@ -192,7 +191,6 @@ export const backup = async (destDir: string, destPrefix: string, remoteDir: str
   //       log(`file ${ffile} was transfered to ${ftpoptions.srvname}...`);
   //     } 
   //    }
-
   //}
 
   const finishDate = new Date();
