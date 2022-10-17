@@ -1,1 +1,2 @@
-deno run --allow-read --allow-write --allow-run --unstable run.ts
+cd /opt/golden/backup  
+deno run --allow-read --allow-write --allow-run --allow-net --unstable run.ts
