@@ -12,6 +12,7 @@ export interface IOptions {
   fb3: IFBOptions;
   fb25: IFBOptions;
   maxProcessCount?: number;
+  ftpoptions: IFTPOptions;
 };
 
 export interface IFiles {
@@ -30,4 +31,19 @@ export interface IFiles {
       fileName: string;
     }[]
   }
+};
+
+/* ftp connection*/
+export interface IFTPConnection{
+  mode: 'active' | 'passive' | undefined;
+  user: string;
+  pass: string;
+  port: number | undefined;
+};
+
+/*ftp options*/
+export interface IFTPOptions {
+  srvname: string;
+  upload : boolean,
+  ConnectionOptions: IFTPConnection;
 };
