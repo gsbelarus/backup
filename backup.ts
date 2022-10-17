@@ -2,8 +2,8 @@ import { IFiles, IOptions } from "./types.ts";
 import * as path from "https://deno.land/std/path/mod.ts";
 import { dateToString } from "https://deno.land/x/date_format_deno/mod.ts"
 import { ensureDir, existsSync, move } from "https://deno.land/std/fs/mod.ts";
-import { ftpSender } from "./ftp.ts";
-//import { readdirSync } from 'node.ts';
+import { FTPClient } from "https://deno.land/x/ftpc/mod.ts";
+import { copy } from "https://deno.land/std@0.159.0/streams/conversion.ts";
 
 const log = (s: string) => {
   console.log(s);
@@ -21,9 +21,8 @@ const log = (s: string) => {
 export const backup = async (destDir: string, destPrefix: string, remoteDir: string | undefined, files: IFiles, options: IOptions) => {
 
   const archiveDate = new Date();
-  const { resetBackupDir, fb25, fb3, zipPath, ftpoptions} = options;
+  const { resetBackupDir, fb25, fb3, zipPath, ftp} = options;
   const maxProcessCount = options.maxProcessCount ?? 4;
-  const uploadFtp = options.ftpoptions.upload ?? true;
 
   log(`${'='.repeat(80)}\narchivation started ${archiveDate.toLocaleDateString()} ${archiveDate.toLocaleTimeString()}\n`);
 
@@ -39,10 +38,12 @@ export const backup = async (destDir: string, destPrefix: string, remoteDir: str
 
     while (i-- > 0) {
       const prevDest = getDestName(d);
-      if (existsSync(prevDest)) {
+      try {
         await Deno.remove(prevDest, { recursive: true });
         log(`previous archive dir ${prevDest} has been removed...`);
         break;
+      } catch(e: any) {
+        // ignore
       }
       d.setDate(d.getDate() - 1);
     }
@@ -54,6 +55,10 @@ export const backup = async (destDir: string, destPrefix: string, remoteDir: str
   await ensureDir(destFullName);
 
   const processes: Promise<void>[] = [];
+  const archiveFiles: {
+    fullFileName: string;
+    fileName: string;
+  }[] = [];
 
   for (const [archiveFileName, archive] of Object.entries(files)) {
 
@@ -72,7 +77,9 @@ export const backup = async (destDir: string, destPrefix: string, remoteDir: str
         return;
       }
 
-      const fullArchiveFileName = path.join(destFullName, `${archiveFileName}.${datePart}.7z`);
+      const fileName = `${archiveFileName}.${datePart}.7z`;  
+      const fullArchiveFileName = path.join(destFullName, fileName);
+      archiveFiles.push({ fullFileName: fullArchiveFileName, fileName });
 
       for (const f of include) {
         let fullFileName = path.join(rootDir, typeof f === 'string' ? f : f.fileName);
@@ -162,8 +169,12 @@ export const backup = async (destDir: string, destPrefix: string, remoteDir: str
           log(new TextDecoder().decode(stderr));
         }
 
-        if (tempFile && existsSync(fullFileName)) {
-          await Deno.remove(fullFileName);
+        if (tempFile) {
+          try {
+            Deno.removeSync(fullFileName);
+          } catch(e: any) {
+            log(`${e}`);
+          }
         }
       }
     }
@@ -173,25 +184,49 @@ export const backup = async (destDir: string, destPrefix: string, remoteDir: str
 
   await Promise.all(processes);
 
+  if (options.ftp && !options.ftp.disabled) {
+    const { server, user, pass, mode, port, dir } = options.ftp;
+
+    try {
+      const ftpClient = new FTPClient(server, {
+        user,
+        pass,
+        mode: mode ?? 'passive',
+        port: port ?? 21,
+      });
+  
+      await ftpClient.connect();
+      log(`FTP connected to ${server}...`);
+
+      if (dir) {
+        const { result, message } = await ftpClient.chdir(dir);
+        log(`remote dir changed to ${dir}...`);
+        if (!result) {
+          log(`cann't change dir ${dir}. message: ${message}...`);
+        }
+      }
+
+      for (const { fullFileName, fileName } of archiveFiles) {
+        const stat = await Deno.stat(fullFileName);
+        const file = await Deno.open(fullFileName, { read: true });
+        const stream = await ftpClient.uploadStream(fileName, stat.size);
+        const copied = await copy(file, stream);
+        await ftpClient.finalizeStream();
+        file.close();
+        log(`uploaded ${fileName}, bytes: ${copied}...`);
+      }
+
+      await ftpClient.close();
+      log(`FTP disconnected...`)
+    } catch (e: any) {
+      log(`FTP error: ${e}`);
+    }
+  }
+
   if (remoteDir) {
     await move(destFullName, remoteDir + '/' + destPrefix + '-' + datePart, { overwrite: true });
     log(`${destFullName} has been moved to ${remoteDir}...`)
   }
-
-  // тут нужен цикл по файлам архива после перемещения
-  const destFolder = destDir + destPrefix + '-' + datePart; 
-  //let fs = readdirSync(destFolder);
-   // for (const ffile in  fs){
-  //    // upload to ftp-server
-  //   if (uploadFtp) {
-  //     if (!existsSync(ffile)) {
-  //       log(`file  ${ffile} does not exists`)
-  //     } else {
-  //       await ftpSender(ffile, ftpoptions);
-  //       log(`file ${ffile} was transfered to ${ftpoptions.srvname}...`);
-  //     } 
-  //    }
-  //}
 
   const finishDate = new Date();
   log(`archivation finished ${finishDate.toISOString()}, in ${new Date(finishDate.getDate() - archiveDate.getDate()).toISOString().slice(11, -1)}`);

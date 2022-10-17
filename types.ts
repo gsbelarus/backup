@@ -6,13 +6,23 @@ export interface IFBOptions {
   password: 'masterkey';
 };
 
+export interface IFTPOptions {
+  server: string;
+  port?: number;
+  mode?: 'active' | 'passive';
+  dir?: string;
+  user: string;
+  pass: string;
+  disabled?: boolean,
+};
+
 export interface IOptions {
   resetBackupDir: boolean;
   zipPath: string;
   fb3: IFBOptions;
   fb25: IFBOptions;
   maxProcessCount?: number;
-  ftpoptions: IFTPOptions;
+  ftp?: IFTPOptions;
 };
 
 export interface IFiles {
@@ -33,17 +43,3 @@ export interface IFiles {
   }
 };
 
-/* ftp connection*/
-export interface IFTPConnection{
-  mode: 'active' | 'passive' | undefined;
-  user: string;
-  pass: string;
-  port: number | undefined;
-};
-
-/*ftp options*/
-export interface IFTPOptions {
-  srvname: string;
-  upload : boolean,
-  ConnectionOptions: IFTPConnection;
-};
