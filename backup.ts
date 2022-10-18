@@ -250,10 +250,11 @@ export const backup = async (destDir: string, destPrefix: string, remoteDir: str
           const stat = await Deno.stat(fullFileName);
           const file = await Deno.open(fullFileName, { read: true });
           const stream = await ftpClient.uploadStream(fileName, stat.size);
+          log(`uploading ${fileName}, bytes: ${stat.size}...`);
           const copied = await copy(file, stream);
           await ftpClient.finalizeStream();
           file.close();
-          log(`uploaded ${fileName}, bytes: ${copied}...`);
+          log(`done! bytes: ${copied}...`);
         }
       } else {
         log(`Can't change dir to ${ftpDestDir}. ${message}...`);
