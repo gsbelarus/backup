@@ -242,22 +242,34 @@ export const backup = async (destDir: string, destPrefix: string, remoteDir: str
       if (await ftpClient.mkdir(ftpDestDir)) {
         log(`directory ${ftpDestDir} has been created...`);
       }
-
-      const { result, message } = await ftpClient.chdir(ftpDestDir); 
       
-      if (result) {
-        for (const { fullFileName, fileName } of archiveFiles) {
-          const stat = await Deno.stat(fullFileName);
-          const file = await Deno.open(fullFileName, { read: true });
-          const stream = await ftpClient.uploadStream(fileName, stat.size);
-          log(`uploading ${fileName}, bytes: ${stat.size}...`);
-          const copied = await copy(file, stream);
-          await ftpClient.finalizeStream();
-          file.close();
-          log(`done! bytes: ${copied}...`);
+      
+      for (const { fullFileName, fileName } of archiveFiles) {
+        await ftpClient.close();
+        await ftpClient.connect();  
+
+        if (dir) {
+          const { result, message } = await ftpClient.chdir(dir);
+          if (!result) {
+            log(`can't change dir ${dir}. message: ${message}...`);
+            break;
+          }
         }
-      } else {
-        log(`Can't change dir to ${ftpDestDir}. ${message}...`);
+
+        const { result, message } = await ftpClient.chdir(ftpDestDir); 
+        if (!result) {
+          log(`can't change dir ${dir}. message: ${message}...`);
+          break;
+        }
+
+        const stat = await Deno.stat(fullFileName);
+        const file = await Deno.open(fullFileName, { read: true });
+        const stream = await ftpClient.uploadStream(fileName, stat.size);
+        log(`uploading ${fileName}, bytes: ${stat.size}...`);
+        const copied = await copy(file, stream);
+        await ftpClient.finalizeStream();
+        file.close();
+        log(`done! bytes: ${copied}...`);
       }
 
       await ftpClient.close();
