@@ -202,11 +202,7 @@ export const backup = async (destDir: string, destPrefix: string, remoteDir: str
       log(`FTP connected to ${server}...`);
 
       if (dir) {
-        const { result, message } = await ftpClient.chdir(dir);
-        log(`remote dir changed to ${dir}...`);
-        if (!result) {
-          log(`can't change dir ${dir}. message: ${message}...`);
-        }
+        await ftpClient.chdir(dir);
       }
 
       if (resetBackupDir) {
@@ -215,9 +211,9 @@ export const backup = async (destDir: string, destPrefix: string, remoteDir: str
     
         while (i-- > 0) {
           const prevDest = getDestName('', d);
-          const { result } = await ftpClient.chdir(prevDest); 
-
-          if (result) {
+		  
+		  try {
+            await ftpClient.chdir(prevDest); 
             log(`directory ${prevDest} found...`);
             const flist = await ftpClient.list('.');
             for (const fname of flist) {
@@ -231,7 +227,9 @@ export const backup = async (destDir: string, destPrefix: string, remoteDir: str
             await ftpClient.rmdir(prevDest);
             log(`previous archive dir ${prevDest} has been removed...`);
             break;
-          }
+          } catch(e) {
+		    // ignore error
+		  }
 
           d.setDate(d.getDate() - 1);
         }
@@ -249,18 +247,10 @@ export const backup = async (destDir: string, destPrefix: string, remoteDir: str
         await ftpClient.connect();  
 
         if (dir) {
-          const { result, message } = await ftpClient.chdir(dir);
-          if (!result) {
-            log(`can't change dir ${dir}. message: ${message}...`);
-            break;
-          }
+          await ftpClient.chdir(dir);
         }
 
-        const { result, message } = await ftpClient.chdir(ftpDestDir); 
-        if (!result) {
-          log(`can't change dir ${dir}. message: ${message}...`);
-          break;
-        }
+        await ftpClient.chdir(ftpDestDir); 
 
         const stat = await Deno.stat(fullFileName);
         const file = await Deno.open(fullFileName, { read: true });
