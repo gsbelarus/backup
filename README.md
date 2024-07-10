@@ -8,6 +8,6 @@
 
 ## Prerequisites
 
-1. Deno (deno.exe could be put right into the folder with sources)
-2. 7zip
+1. [Deno](https://docs.deno.com/runtime/manual/getting_started/installation/) (deno.exe could be put right into the folder with sources)
+2. [7zip](https://www.7-zip.org/)
 3. Firebird 2.5 or Firebird 3.0 (only in case Firebird databases would be backed up)
