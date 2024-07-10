@@ -26,8 +26,11 @@ const files: IFiles = {
 };
 
 const options: IOptions = {
+  /** If true, previous backup will be deleted */ 
   resetBackupDir: true,
+  /** Path to the 7Zip binary */
   zipPath: 'C:/Program Files/7-zip',
+  /** Path to the gbak utility and paremeters for connection to the FB 2.5 server */
   fb25: {
     binPath: 'C:/Program Files/FB25/bin',
     host: 'localhost',
@@ -35,6 +38,7 @@ const options: IOptions = {
     user: 'SYSDBA',
     password: 'masterkey'
   },
+  /** Path to the gbak utility and paremeters for connection to the FB 3 server */
   fb3: {
     binPath: 'C:/Program Files/FB3',
     host: 'localhost',
@@ -42,6 +46,7 @@ const options: IOptions = {
     user: 'SYSDBA',
     password: 'masterkey'
   },
+  /** How many process will run in parallel */
   maxProcessCount: 4
 };
 
